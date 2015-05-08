@@ -11,7 +11,7 @@ for i = 1:length(dirName)
         disp(['Could not create directory < ' cell2mat(dirName(i)) ' > in < ' fullfile(data_path, caseDir.name) ' >'])
         disp(message);
         disp(messageid);
-        exit();
+        return;
     else
         disp(['Creating directory: ' cell2mat(dirName(i))]);
     end
@@ -150,7 +150,7 @@ end
 % STEP 6 => T2 DICOMS to NRRD
 % Example: WIPmocoMEMPRAGE_1mm_FOV_220_RMS-WIPmocoMEMPRAGE_1mm_FOV_220-19130
 
-pattern = 'WIP\w+RMS-\w+-[0-9]+';
+pattern = 'T2.+-T2.+-[0-9]+';
 
 folder_list = FindFolderFromRegex(fullfile(data_path, caseDir.name, caseDir.date_folder, caseDir.patient_number, caseDir.main_folder), pattern);
 
@@ -192,12 +192,12 @@ if (length(folder_list) < 1)
 end
 
 if (length(folder_list) > 1)
-    disp('WARNING 110: Multiple MoCo fMRI scan folder found')
+    disp('WARNING 110: Multiple MoCo fMRI scan folder found - only the first one will be processed')
     disp(['Case: ', caseDir.name, ' in ', data_path]);
     %exit();
 end
 
-for i = 1:length(folder_list)
+for i = 1:1 %length(folder_list)
    dicom_path = fullfile(data_path, caseDir.name, caseDir.date_folder, caseDir.patient_number, caseDir.main_folder, cell2mat(folder_list(i)));
    volume_name = ['fMRI_' int2str(i)]; % extension is given by the function
    output_dir = fullfile(data_path, caseDir.name, '/fMRI/');

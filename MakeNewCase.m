@@ -14,7 +14,7 @@ function  MakeNewCase(start_number, stop_number, recreate)
 
 
 % Add the current directory to the path
-thisdir = '/projects/schiz/guest/ccarquex/ADHD_PreProcess';
+thisdir = '/projects/schiz/ra/ccarquex/ADHD_PreProcess';
 if exist(thisdir,'dir'), addpath(thisdir); end
 
 thisdir = '/projects/schiz/pi/yogesh/toolboxes/NiftiToMatConvert';
@@ -23,8 +23,16 @@ if exist(thisdir,'dir'), addpath(thisdir); end
 thisdir = '/projects/schiz/pi/yogesh/phd/dwmri/lib';
 if exist(thisdir,'dir'), addpath(thisdir); end
 
+% mat2DWInhdr.m
+thisdir = '/projects/schiz/pi/yogesh/toolboxes/CompressedSensing/CompressedSensingDWI/MATLAB_SCRIPTS';
+if exist(thisdir,'dir'), addpath(thisdir); end
+
 % Path to data
 data_path = '/projects/schiz/ADHD/';
+
+% Protocol path
+protocol_name = 'protocol.xml';
+protocol_path = fullfile(data_path, 'common_files/', protocol_name);
 
 % if (nargin <= 2)
 %     recreate = 0;
@@ -54,9 +62,20 @@ for i = 1:length(caseFileNames)
          caseDir = caseFileNames(i);
          
          % Convert all the DICOMS to NRRD format
-         ConvertCaseToNrrd(caseDir, data_path, recreate);
+         disp('Converting DICOMS to Nifti and NRRD')
+         %ConvertCaseToNrrd(caseDir, data_path, recreate);
+         
+         % Run DTIPrep and searches for bad gradients
+         disp('Running DTIPrep');
+         RunDTIPrep(fullfile(data_path, caseDir.name), recreate, protocol_path);
          
          % Eddy Current correction
+         disp('Eddy currents correction');
+         %EddyCurrentCorrection_diffusion(fullfile(data_path, caseDir.name), recreate)
+
+         
+         % EPI script
+         %EpiCorrection(fullfile(data_path, caseDir.name), recreate);
          
     end
 end

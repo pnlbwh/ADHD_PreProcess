@@ -4,17 +4,17 @@ files = dir(fullfile(dicom_path, '/*.dcm'));
 N = numel(files);
 
 %convert dicom to nifti format first
-nifti_dir = fullfile(output_dir, 'Nifti');
+nifti_dir = output_dir; %fullfile(output_dir, 'Nifti');
 
 
-[success, message, messageid] = mkdir(output_dir, 'Nifti');
-
-if (success ~= 1)
-    disp('= ERROR 100 =')
-    disp(['Could not create directory < Nifti  > in < ' dicom_path ' >'])
-    disp(message);
-    disp(messageid);
-end
+% [success, message, messageid] = mkdir(output_dir, 'Nifti');
+% 
+% if (success ~= 1)
+%     disp('= ERROR 100 =')
+%     disp(['Could not create directory < Nifti  > in < ' dicom_path ' >'])
+%     disp(message);
+%     disp(messageid);
+% end
 
 
 % Command for DICOM to NIFTI
@@ -56,6 +56,6 @@ file_name = fullfile(output_dir, volume_name);
 mat2nhdr(data, file_name,'fMRI',spacedirections,spaceorigin);
 
 % Remove the Nifti folder
-system(['rm -r ' nifti_dir]);
+%system(['rm -r ' nifti_dir]);
 
 end
