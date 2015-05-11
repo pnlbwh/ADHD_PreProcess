@@ -28,12 +28,27 @@ elseif (count > 1)
 %     disp('Processing the last one only');
 end
 
-for scan_index=1:1 %count
+for scan_index=1:count
 
 
     input_dwi_name = ['dwi_' int2str(scan_index) '.nhdr'];
     input_dwi_path = fullfile(diff_path, input_dwi_name);
 
+    output_result_matrix_name = ['dwi_' int2str(scan_index) '_quality_control.txt'];
+    output_result_matrix_path = fullfile(diff_path, output_result_matrix_name);
+    
+    % % %     
+    % Check if DTIPrep has already been run on this scan    
+    % % %    
+    
+    if (exist(output_result_matrix_path, 'file')) && (recreate == 0)
+        disp(['Warning: scan ' scan_index ' has already been processed by DTIPrep - skipping it']);
+        disp(output_result_matrix_path);
+        disp(['In case; ' case_path]);
+        
+        continue;
+    end
+    
     % % % 
     % Create the results directory
     % % % 
@@ -79,7 +94,7 @@ for scan_index=1:1 %count
         return;
     end
 
-    volume_quality_array = zeros(70);
+    volume_quality_array = zeros(70, 1);
 
     for i=4:73
         result = xRoot.QCResultSettings.entry{3}.entry{i}.processing.Text;
@@ -94,8 +109,7 @@ for scan_index=1:1 %count
     % Save the results
     % % % 
 
-    output_result_matrix_name = ['dwi_' int2str(scan_index) '_quality_control.txt'];
-    output_result_matrix_path = fullfile(diff_path, output_result_matrix_name);
+
     save(output_result_matrix_path, 'volume_quality_array', '-ascii');
 
 end % END of the for loop

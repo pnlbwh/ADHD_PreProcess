@@ -186,13 +186,18 @@ pattern = 'MoCo.*-.*fMRI.*-[0-9]+';
 folder_list = FindFolderFromRegex(fullfile(data_path, caseDir.name, caseDir.date_folder, caseDir.patient_number, caseDir.main_folder), pattern);
 
 if (length(folder_list) < 1)
-    disp('ERROR 109: No MoCo fMRI scan folder found')
+    pattern = '.*-.*fMRI.*-[0-9]+';
+    folder_list = FindFolderFromRegex(fullfile(data_path, caseDir.name, caseDir.date_folder, caseDir.patient_number, caseDir.main_folder), pattern);
+end
+
+if (length(folder_list) < 1)
+    disp('ERROR 109: No MoCo / SMS3 fMRI scan folder found')
     disp(['Case: ', caseDir.name, ' in ', data_path]);
-    %exit();
+    return;
 end
 
 if (length(folder_list) > 1)
-    disp('WARNING 110: Multiple MoCo fMRI scan folder found - only the first one will be processed')
+    disp('WARNING 110: Multiple MoCo / SMS3 fMRI scan folder found - only the first one will be processed')
     disp(['Case: ', caseDir.name, ' in ', data_path]);
     %exit();
 end
