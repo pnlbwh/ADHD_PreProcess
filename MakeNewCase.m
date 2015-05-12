@@ -67,11 +67,11 @@ for i = 1:length(caseFileNames)
          
          % Run DTIPrep and searches for bad gradients
          disp('Running DTIPrep');
-         RunDTIPrep(fullfile(data_path, caseDir.name), recreate, protocol_path);
+         %RunDTIPrep(fullfile(data_path, caseDir.name), recreate, protocol_path);
          
          % Eddy Current correction
          disp('Eddy currents correction');
-         %EddyCurrentCorrection_diffusion(fullfile(data_path, caseDir.name), recreate)
+         EddyCurrentCorrection_diffusion(fullfile(data_path, caseDir.name), recreate)
 
          
          % EPI script

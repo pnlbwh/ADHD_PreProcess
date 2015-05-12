@@ -43,9 +43,9 @@ non_zero_gradients = -1;
 for i=1:count_scans
    dwi_qc(:, i) = load(fullfile(diff_path, ['dwi_' int2str(i) '_quality_control.txt']));
    
-   if (nnz(dwi_qc) > non_zero_gradients)
+   if (nnz(dwi_qc(:, i)) > non_zero_gradients)
       best_scan = i; 
-      non_zero_gradients = nnz(dwi_qc);
+      non_zero_gradients = nnz(dwi_qc(:, i));
    end
 end
 
@@ -89,21 +89,6 @@ system(command);
 % Now register the scans to the reference B0
 % % % 
 
-
-% Create the temporary folder
-
-[success, message, messageid] = mkdir(case_path, 'tmp');
-
-if (success ~= 1)
-    disp('= ERROR 100 =')
-    disp(['Could not create directory < tmp > in < ' case_path ' >'])
-    disp(message);
-    disp(messageid);
-    return;
-end
-
-tmp_path = fullfile(case_path, '/tmp');
-
 %%%
 % Step 1. Register the good gradients, do not touch the bad ones, and
 % recreate one NHDR file
@@ -125,8 +110,8 @@ for scan_number=1:count_scans
     
     output_file_name = ['dwi_' int2str(scan_number) '-Ed'];
     
-    dwi_qc(:, scan_number) = RegisterScanToB0(reference_b0_path_nii, input_file_path, ...
-                        output_file_name, diff_path, tmp_path, dwi_qc(:, scan_number), reference_b0_index);
+    dwi_qc(:, scan_number) = RegisterScanToB0(case_path, reference_b0_path_nii, input_file_path, ...
+                        output_file_name, diff_path, dwi_qc(:, scan_number), reference_b0_index, recreate);
                   
     % write the new dwi_qc variable
     volume_quality_array = zeros(70,1);
@@ -148,17 +133,23 @@ end
 number_of_gradients = nnz(merged_qc);
 
     % B. Now let's create the header of our final file
-file_name = ['dwi_' int2str(index_best_scan) '.nhdr'];
+file_name = ['dwi_' int2str(index_best_scan) '-Ed.nhdr'];
 input_file_path = fullfile(diff_path, file_name);
 dwi = loadNrrdStructure(input_file_path);
 
 sz = size(dwi.data);
 
-diff_data.data = zeros(sz(1), sz(2), sz(3), count_scans);
+% Save all the scans in a big structure: first we load the 'best scan'
+diff_data = struct('data', [], 'gradients', []);
+diff_data.data = uint16(zeros(sz(1), sz(2), sz(3), sz(4), count_scans));
 diff_data.data(:, :, :, :, best_scan) = dwi.data;
 diff_data.gradients = zeros(sz(4), 3, count_scans);
+diff_data.gradients(:, :, best_scan) = dwi.gradients;
 
-dwi.data = zeros(sz(1), sz(2), sz(3), number_of_gradients);
+% The 'DWI' variable is the one that is going to be saved on the disk
+dwi.data(:) = [];
+dwi.data = uint16(zeros(sz(1), sz(2), sz(3), number_of_gradients));
+dwi.gradients(:) = [];
 dwi.gradients = zeros(number_of_gradients, 3);
 
     % C. Let's fill out the .data and .gradients variable
@@ -171,24 +162,33 @@ for i=1:count_scans
        continue; 
     end
     
-    file_name = ['dwi_' int2str(i) '.nhdr'];
+    file_name = ['dwi_' int2str(i) '-Ed.nhdr'];
     input_file_path = fullfile(diff_path, file_name);
     
     tmp_dwi = loadNrrdStructure(input_file_path);
     diff_data.data(:, :, :, :, i) = tmp_dwi.data;
+    diff_data.gradients(:, :, i) = tmp_dwi.gradients;
 end
 
+clear tmp_dwi;
+
+% We use a counter to keep track of where we are in the gradient number of
+% the new volume
+
+newVolume_gradientCounter = 1;
 for gradient_direction=1:70
+
+    % If this gradient direction is not available in any scan
    if (merged_qc(gradient_direction) == 0) 
        continue;
    end
    
    % If the gradient is present in the "best scan", we take it from here
    if (dwi_qc(gradient_direction, best_scan) == 1)
-       dwi.data(:, :, :, gradient_direction) = diff_data.data(:, :, :, gradient_direction, best_scan);
-       dwi.gradients(gradient_direction, :) = diff_data.gradients(gradient_directon, :, best_scan);
+       dwi.data(:, :, :, newVolume_gradientCounter) = diff_data.data(:, :, :, gradient_direction, best_scan);
+       dwi.gradients(newVolume_gradientCounter, :) = diff_data.gradients(gradient_direction, :, best_scan);
        
-   % Otherwise we take it from another volume
+   % Otherwise we take it from another volume, the first one with a good QC
    else
         for k=1:count_scans
            if (k == best_scan) 
@@ -200,16 +200,19 @@ for gradient_direction=1:70
            end
            
            % else, it mean the gradient is present in this k^th volume
-           dwi.data(:, :, :, gradient_direction) = diff_data.data(:, :, :, gradient_direction, k);
-           dwi.gradients() = diff_data.gradients(gradient_directon, :, k);
+           dwi.data(:, :, :, newVolume_gradientCounter) = diff_data.data(:, :, :, gradient_direction, k);
+           dwi.gradients(newVolume_gradientCounter, :) = diff_data.gradients(gradient_direction, :, k);
            
         end
    end
+
+    newVolume_gradientCounter = newVolume_gradientCounter +1;
 end
 
     % Finally, we write the file on the disk
 clear diff_data;
 
+dwi.spacedirections = 2*eye(3).*sign(dwi.spacedirections);
 output_file_name = 'dwi-Qc-Ed';
 mat2DWInhdr(output_file_name, diff_path, dwi, 'uint16');
 
